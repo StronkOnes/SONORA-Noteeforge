@@ -1,0 +1,6 @@
+{
+  "name": "SONORA NoteForge",
+  "description": "Audio-to-MIDI transcription, key & chord discovery, and piano-roll editor for music producers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
