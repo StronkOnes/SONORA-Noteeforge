@@ -39,6 +39,8 @@ export const AnalysisControls: React.FC = () => {
     analysisStep,
     audioBuffer,
     setSelectedRegion,
+    chordDetectionMode,
+    setChordDetectionMode,
   } = useProject();
 
   const isAnalyzing = analysisStatus === 'analyzing';
@@ -187,6 +189,66 @@ export const AnalysisControls: React.FC = () => {
               </FormControl>
             </Box>
           )}
+
+          {/* Chord Intelligence: Strict vs Loose Mode */}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: '#64748b',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontSize: '0.6875rem',
+                mb: 0.5,
+              }}
+            >
+              Chord Mode
+            </Typography>
+            <ButtonGroup size="small" sx={{ backgroundColor: '#181b22', borderRadius: 1 }}>
+              <Tooltip title="Strict Mode: High confidence threshold. Requires solid tonal evidence and consistent voicings. Minimizes passing-tone false detections.">
+                <Button
+                  variant={chordDetectionMode === 'strict' ? 'contained' : 'outlined'}
+                  onClick={() => setChordDetectionMode('strict')}
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    height: 33,
+                    px: 1.25,
+                    backgroundColor: chordDetectionMode === 'strict' ? '#f59e0b' : 'transparent',
+                    color: chordDetectionMode === 'strict' ? '#0c0e12' : '#94a3b8',
+                    borderColor: '#292e3c',
+                    '&:hover': {
+                      backgroundColor: chordDetectionMode === 'strict' ? '#fbbf24' : '#222733',
+                    },
+                  }}
+                >
+                  Strict
+                </Button>
+              </Tooltip>
+              <Tooltip title="Loose Mode: Broad, forgiving chord recognition. Estimates closest harmonic match even from sparse, noisy, or dyad input.">
+                <Button
+                  variant={chordDetectionMode === 'loose' ? 'contained' : 'outlined'}
+                  onClick={() => setChordDetectionMode('loose')}
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    height: 33,
+                    px: 1.25,
+                    backgroundColor: chordDetectionMode === 'loose' ? '#f59e0b' : 'transparent',
+                    color: chordDetectionMode === 'loose' ? '#0c0e12' : '#94a3b8',
+                    borderColor: '#292e3c',
+                    '&:hover': {
+                      backgroundColor: chordDetectionMode === 'loose' ? '#fbbf24' : '#222733',
+                    },
+                  }}
+                >
+                  Loose
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+          </Box>
 
           {/* Vocal Mode Setting: Pitch Bends vs Clean */}
           {project.analysisMode === 'vocal' && (

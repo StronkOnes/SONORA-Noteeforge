@@ -15,6 +15,7 @@ import {
   MenuItem,
   FormControl,
   Divider,
+  Button,
 } from '@mui/material';
 import PanToolIcon from '@mui/icons-material/PanTool';
 import CreateIcon from '@mui/icons-material/Create';
@@ -23,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import TuneIcon from '@mui/icons-material/Tune';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import { useProject, EditorTool } from '../../state/ProjectStore.tsx';
@@ -62,6 +64,10 @@ export const PianoRoll: React.FC = () => {
     setScaleHighlightEnabled,
     playheadTime,
     seek,
+    removeGhostNotes,
+    applyLegato,
+    humanizeVelocities,
+    transposeSelectedNotes,
   } = useProject();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -478,6 +484,132 @@ export const PianoRoll: React.FC = () => {
               Scale Guide: {scaleHighlightEnabled ? 'ON' : 'OFF'}
             </IconButton>
           </Tooltip>
+
+          <Divider orientation="vertical" flexItem sx={{ borderColor: '#222631', my: 0.5, mx: 0.5 }} />
+
+          {/* Pro MIDI Polish Toolkit */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Tooltip title="Remove accidental ghost notes shorter than 70ms or below 30 velocity">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoFixHighIcon sx={{ fontSize: '0.8rem !important' }} />}
+                onClick={removeGhostNotes}
+                disabled={project.notes.length === 0}
+                sx={{
+                  color: '#cbd5e1',
+                  borderColor: '#292e3c',
+                  backgroundColor: '#161922',
+                  fontSize: '0.7rem',
+                  py: 0.35,
+                  px: 1,
+                  height: 26,
+                  '&:hover': {
+                    borderColor: '#f59e0b',
+                    color: '#f59e0b',
+                    backgroundColor: '#1f2430',
+                  },
+                }}
+              >
+                De-Glitch
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Legato: Smoothly extends chord and melodic notes to eliminate choppy micro-gaps">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={applyLegato}
+                disabled={project.notes.length === 0}
+                sx={{
+                  color: '#cbd5e1',
+                  borderColor: '#292e3c',
+                  backgroundColor: '#161922',
+                  fontSize: '0.7rem',
+                  py: 0.35,
+                  px: 1,
+                  height: 26,
+                  '&:hover': {
+                    borderColor: '#f59e0b',
+                    color: '#f59e0b',
+                    backgroundColor: '#1f2430',
+                  },
+                }}
+              >
+                Legato
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Humanize velocities: Adds subtle organic dynamics (±8 velocity) for natural feel">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={humanizeVelocities}
+                disabled={project.notes.length === 0}
+                sx={{
+                  color: '#cbd5e1',
+                  borderColor: '#292e3c',
+                  backgroundColor: '#161922',
+                  fontSize: '0.7rem',
+                  py: 0.35,
+                  px: 1,
+                  height: 26,
+                  '&:hover': {
+                    borderColor: '#38bdf8',
+                    color: '#38bdf8',
+                    backgroundColor: '#18202d',
+                  },
+                }}
+              >
+                Humanize
+              </Button>
+            </Tooltip>
+
+            {selectedNoteIds.size > 0 && (
+              <>
+                <Tooltip title="Transpose selected notes up 1 octave (+12 semitones)">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => transposeSelectedNotes(12)}
+                    sx={{
+                      color: '#f59e0b',
+                      borderColor: '#f59e0b',
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      py: 0.35,
+                      px: 0.75,
+                      minWidth: 42,
+                      height: 26,
+                    }}
+                  >
+                    +8ve
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Transpose selected notes down 1 octave (-12 semitones)">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => transposeSelectedNotes(-12)}
+                    sx={{
+                      color: '#f59e0b',
+                      borderColor: '#f59e0b',
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      py: 0.35,
+                      px: 0.75,
+                      minWidth: 42,
+                      height: 26,
+                    }}
+                  >
+                    -8ve
+                  </Button>
+                </Tooltip>
+              </>
+            )}
+          </Box>
         </Box>
 
         {/* Right: Lanes Toggle & Zoom */}

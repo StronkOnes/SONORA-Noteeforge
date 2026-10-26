@@ -150,16 +150,55 @@ export const ChordLane: React.FC = () => {
                 </IconButton>
               </Tooltip>
 
-              <Typography
-                sx={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontWeight: 700,
-                  fontSize: '0.8125rem',
-                  color: '#f1f5f9',
-                }}
+              <Tooltip
+                title={
+                  <Box sx={{ p: 0.5 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.8rem' }}>{chord.label}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
+                      Inversion: {chord.inversion ?? 'Root Position'} • Confidence: {Math.round(chord.confidence * 100)}%
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                      Time: {chord.startSeconds.toFixed(2)}s - {chord.endSeconds.toFixed(2)}s
+                    </Typography>
+                  </Box>
+                }
               >
-                {chord.label}
-              </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontWeight: 700,
+                    fontSize: '0.8125rem',
+                    color: '#f1f5f9',
+                    cursor: 'default',
+                  }}
+                >
+                  {chord.label}
+                </Typography>
+              </Tooltip>
+
+              {chord.inversion && chord.inversion !== 'root' && (
+                <Chip
+                  size="small"
+                  label={
+                    chord.inversion === 'first'
+                      ? '1st'
+                      : chord.inversion === 'second'
+                      ? '2nd'
+                      : chord.inversion === 'third'
+                      ? '3rd'
+                      : 'Slash'
+                  }
+                  sx={{
+                    height: 16,
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    px: 0.2,
+                  }}
+                />
+              )}
 
               <Typography
                 variant="caption"

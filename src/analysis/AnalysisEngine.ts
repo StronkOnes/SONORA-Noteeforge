@@ -57,12 +57,17 @@ export class AnalysisEngine {
     // 3. Key & Scale estimation
     const key = estimateKeyFromNotes(transcriptionResult.notes);
 
-    onProgress?.(0.85, 'Inferring chord progression and voicings...');
-    // 4. Chord estimation
+    onProgress?.(0.85, 'Inferring key-aware chords and voicings...');
+    // 4. Key-Aware, Inversion-Aware Chord estimation on the exact selected region
     const chords = estimateChordsFromNotes(
       transcriptionResult.notes,
-      sourceAudio.duration,
-      0.5
+      startSeconds,
+      endSeconds,
+      key,
+      {
+        mode: settings.chordDetectionMode ?? 'strict',
+        minEventDuration: 0.20,
+      }
     );
 
     onProgress?.(0.95, 'Synthesizing confidence diagnostics...');

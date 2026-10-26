@@ -5,7 +5,7 @@
 
 import { NoteEvent } from './NoteEvent.ts';
 import { MusicalKey } from './Scale.ts';
-import { ChordEvent } from './Chord.ts';
+import { ChordEvent, ChordDetectionMode } from './Chord.ts';
 import { QuantizeSettings } from './Quantization.ts';
 
 export type AnalysisMode = 'vocal' | 'melody' | 'chords';
@@ -38,6 +38,7 @@ export interface MusicalProject {
   notes: NoteEvent[];
   quantizeSettings: QuantizeSettings;
   expressiveVibrato: boolean; // vocal mode option: preserve pitch bends vs clean MIDI
+  chordDetectionMode: ChordDetectionMode; // 'strict' vs 'loose'
   transcriptionConfidence: number;
   lastAnalysisTimestamp?: number;
 }
@@ -60,6 +61,7 @@ export function createInitialProject(name: string = 'Untitled Project'): Musical
       quantizeDurations: false,
     },
     expressiveVibrato: false,
+    chordDetectionMode: 'strict',
     transcriptionConfidence: 1.0,
   };
 }

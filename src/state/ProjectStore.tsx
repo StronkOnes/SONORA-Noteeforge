@@ -11,7 +11,12 @@ import {
   InstrumentProfile,
 } from '../music/MusicalProject.ts';
 import { NoteEvent } from '../music/NoteEvent.ts';
-import { ChordEvent } from '../music/Chord.ts';
+import {
+  ChordEvent,
+  ChordDetectionMode,
+  chordEventToNoteEvents,
+  getChordAuditionNotes,
+} from '../music/Chord.ts';
 import { MusicalKey, snapPitchToScale } from '../music/Scale.ts';
 import { QuantizeSettings, quantizeNotes } from '../music/Quantization.ts';
 import { WaveformPeaks, generateWaveformPeaks } from '../audio/WaveformData.ts';
@@ -77,6 +82,8 @@ interface ProjectContextValue {
   setInstrumentProfile: (profile: InstrumentProfile) => void;
   setBpm: (bpm: number) => void;
   setKey: (key: MusicalKey) => void;
+  chordDetectionMode: ChordDetectionMode;
+  setChordDetectionMode: (mode: ChordDetectionMode) => void;
   runAnalysis: () => Promise<void>;
   cancelAnalysis: () => void;
 
@@ -92,6 +99,9 @@ interface ProjectContextValue {
   splitNote: (noteId: string, splitTimeSec: number) => void;
   applyQuantization: (settings: QuantizeSettings) => void;
   applyScaleCorrection: () => void;
+  removeGhostNotes: () => void;
+  applyLegato: () => void;
+  humanizeVelocities: () => void;
 
   // Chord Manipulations
   updateChord: (chordId: string, updates: Partial<ChordEvent>) => void;
@@ -392,6 +402,10 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setProject((prev) => ({ ...prev, key }));
   }, []);
 
+  const setChordDetectionMode = useCallback((mode: ChordDetectionMode) => {
+    setProject((prev) => ({ ...prev, chordDetectionMode: mode }));
+  }, []);
+
   // Run Analysis Internal
   const runAnalysisInternal = async (
     buf: AudioBuffer,
@@ -418,6 +432,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           mergeFragments: true,
           expressiveVibrato: mode === 'vocal',
           octaveCorrection: true,
+          chordDetectionMode: project.chordDetectionMode,
         },
         (progress, step) => {
           setAnalysisProgress(progress);
@@ -628,6 +643,53 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, [project.key, updateHistoryState]);
 
+  const removeGhostNotes = useCallback(() => {
+    setProject((prev) => {
+      const filtered = prev.notes.filter((n) => n.durationSeconds >= 0.07 && (n.velocity || 80) >= 30);
+      if (filtered.length !== prev.notes.length) {
+        updateHistoryState(filtered);
+      }
+      return { ...prev, notes: filtered };
+    });
+  }, [updateHistoryState]);
+
+  const applyLegato = useCallback(() => {
+    setProject((prev) => {
+      const sorted = [...prev.notes].sort((a, b) => a.startSeconds - b.startSeconds);
+      const updated = sorted.map((current, i) => {
+        const curEnd = current.startSeconds + current.durationSeconds;
+        let nextStart: number | null = null;
+        for (let j = i + 1; j < sorted.length; j++) {
+          if (sorted[j].startSeconds > current.startSeconds + 0.04) {
+            nextStart = sorted[j].startSeconds;
+            break;
+          }
+        }
+        if (nextStart !== null && nextStart > curEnd && nextStart - curEnd <= 0.22) {
+          return {
+            ...current,
+            durationSeconds: Number((nextStart - current.startSeconds).toFixed(3)),
+          };
+        }
+        return current;
+      });
+      updateHistoryState(updated);
+      return { ...prev, notes: updated };
+    });
+  }, [updateHistoryState]);
+
+  const humanizeVelocities = useCallback(() => {
+    setProject((prev) => {
+      const humanized = prev.notes.map((n) => {
+        const jitter = Math.round((Math.random() * 16) - 8);
+        const newVel = Math.max(35, Math.min(127, n.velocity + jitter));
+        return { ...n, velocity: newVel };
+      });
+      updateHistoryState(humanized);
+      return { ...prev, notes: humanized };
+    });
+  }, [updateHistoryState]);
+
   // Chord Manipulations
   const updateChord = useCallback((chordId: string, updates: Partial<ChordEvent>) => {
     setProject((prev) => ({
@@ -661,17 +723,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const auditionChord = useCallback((chord: ChordEvent) => {
-    // Generate pitches in octave 3
-    const base = 48 + chord.rootPitchClass;
-    const pitches = chord.chordTones.map((pc) => {
-      let p = 48 + pc;
-      if (p < base) p += 12;
-      return p;
-    });
-    if (chord.bassPitchClass !== undefined) {
-      pitches.unshift(36 + chord.bassPitchClass);
-    }
-    sharedMidiSynth.auditionChord(pitches, 1.0);
+    const pitches =
+      chord.voicingNotes && chord.voicingNotes.length > 0
+        ? chord.voicingNotes
+        : getChordAuditionNotes(chord.rootPitchClass, chord.quality, chord.bassPitchClass, chord.inversion);
+    sharedMidiSynth.auditionChord(pitches, 1.2);
   }, []);
 
   const replaceNotesWithChords = useCallback(() => {
@@ -679,28 +735,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setProject((prev) => {
       const chordNotes: NoteEvent[] = [];
       for (const chord of prev.chords) {
-        const base = 48 + chord.rootPitchClass;
-        const pitches = chord.chordTones.map((pc) => {
-          let p = 48 + pc;
-          if (p < base) p += 12;
-          return p;
+        const events = chordEventToNoteEvents(chord, {
+          bassOctave: 2,
+          baseOctave: 3,
+          defaultVelocity: 84,
         });
-        if (chord.bassPitchClass !== undefined) {
-          pitches.unshift(36 + chord.bassPitchClass);
-        }
-        const dur = Math.max(0.2, chord.endSeconds - chord.startSeconds);
-
-        pitches.forEach((pitch, i) => {
-          chordNotes.push({
-            id: `ch_note_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 5)}`,
-            pitch,
-            startSeconds: Number(chord.startSeconds.toFixed(3)),
-            durationSeconds: Number(dur.toFixed(3)),
-            velocity: 82,
-            confidence: chord.confidence,
-            source: 'user',
-          });
-        });
+        chordNotes.push(...events);
       }
       updateHistoryState(chordNotes);
       return { ...prev, notes: chordNotes };
@@ -848,6 +888,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setInstrumentProfile,
         setBpm,
         setKey,
+        chordDetectionMode: project.chordDetectionMode,
+        setChordDetectionMode,
         runAnalysis,
         cancelAnalysis,
 
@@ -862,6 +904,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         splitNote,
         applyQuantization,
         applyScaleCorrection,
+        removeGhostNotes,
+        applyLegato,
+        humanizeVelocities,
 
         updateChord,
         splitChord,
